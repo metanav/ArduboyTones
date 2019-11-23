@@ -1,7 +1,7 @@
 // Sketch for testing the ArduboyTones library
 
-#include <Arduboy2.h>
-#include <ArduboyTones.h>
+#include <Arduboy2DotMG.h>
+#include <ArduboyTonesDotMG.h>
 
 Arduboy2 arduboy;
 ArduboyTones sound(arduboy.audio.enabled);

@@ -1,6 +1,6 @@
 /**
- * @file ArduboyTones.cpp
- * \brief An Arduino library for playing tones and tone sequences, 
+ * @file ArduboyTonesDotMG.cpp
+ * \brief An Arduino library for playing tones and tone sequences,
  * intended for the Arduboy game system.
  */
 
@@ -36,7 +36,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 *****************************************************************************/
 
-#include "ArduboyTones.h"
+#include "ArduboyTonesDotMG.h"
 
 // pointer to a function that indicates if sound is enabled
 static bool (*outputEnabled)();
@@ -72,7 +72,7 @@ ArduboyTones::ArduboyTones(boolean (*outEn)())
 
 void ArduboyTones::tone(uint16_t freq, uint16_t dur)
 {
-  bitWrite(TIMSK3, OCIE3A, 0); // disable the output compare match interrupt
+  bitClear(TIMSK1, OCIE1A); // disable the output compare match interrupt
   inProgmem = false;
   tonesStart = tonesIndex = toneSequence; // set to start of sequence array
   toneSequence[0] = freq;
@@ -84,7 +84,7 @@ void ArduboyTones::tone(uint16_t freq, uint16_t dur)
 void ArduboyTones::tone(uint16_t freq1, uint16_t dur1,
                         uint16_t freq2, uint16_t dur2)
 {
-  bitWrite(TIMSK3, OCIE3A, 0); // disable the output compare match interrupt
+  bitClear(TIMSK1, OCIE1A); // disable the output compare match interrupt
   inProgmem = false;
   tonesStart = tonesIndex = toneSequence; // set to start of sequence array
   toneSequence[0] = freq1;
@@ -99,7 +99,7 @@ void ArduboyTones::tone(uint16_t freq1, uint16_t dur1,
                         uint16_t freq2, uint16_t dur2,
                         uint16_t freq3, uint16_t dur3)
 {
-  bitWrite(TIMSK3, OCIE3A, 0); // disable the output compare match interrupt
+  bitClear(TIMSK1, OCIE1A); // disable the output compare match interrupt
   inProgmem = false;
   tonesStart = tonesIndex = toneSequence; // set to start of sequence array
   toneSequence[0] = freq1;
@@ -114,7 +114,7 @@ void ArduboyTones::tone(uint16_t freq1, uint16_t dur1,
 
 void ArduboyTones::tones(const uint16_t *tones)
 {
-  bitWrite(TIMSK3, OCIE3A, 0); // disable the output compare match interrupt
+  bitClear(TIMSK1, OCIE1A); // disable the output compare match interrupt
   inProgmem = true;
   tonesStart = tonesIndex = (uint16_t *)tones; // set to start of sequence array
   nextTone(); // start playing
@@ -122,7 +122,7 @@ void ArduboyTones::tones(const uint16_t *tones)
 
 void ArduboyTones::tonesInRAM(uint16_t *tones)
 {
-  bitWrite(TIMSK3, OCIE3A, 0); // disable the output compare match interrupt
+  bitClear(TIMSK1, OCIE1A); // disable the output compare match interrupt
   inProgmem = false;
   tonesStart = tonesIndex = tones; // set to start of sequence array
   nextTone(); // start playing
@@ -130,8 +130,8 @@ void ArduboyTones::tonesInRAM(uint16_t *tones)
 
 void ArduboyTones::noTone()
 {
-  bitWrite(TIMSK3, OCIE3A, 0); // disable the output compare match interrupt
-  TCCR3B = 0; // stop the counter
+  bitClear(TIMSK1, OCIE1A); // disable the output compare match interrupt
+  TCCR1B = 0; // stop the counter
   bitClear(TONE_PIN_PORT, TONE_PIN); // set the pin low
 #ifdef TONES_VOLUME_CONTROL
   bitClear(TONE_PIN2_PORT, TONE_PIN2); // set pin 2 low
@@ -196,12 +196,12 @@ void ArduboyTones::nextTone()
 
 #ifdef TONES_ADJUST_PRESCALER
   if (freq >= MIN_NO_PRESCALE_FREQ) {
-    tccrxbValue = _BV(WGM32) | _BV(CS30); // CTC mode, no prescaling
+    tccrxbValue = _BV(WGM12) | _BV(CS10); // CTC mode, no prescaling
     ocrValue = F_CPU / freq / 2 - 1;
     toneSilent = false;
   }
   else {
-    tccrxbValue = _BV(WGM32) | _BV(CS31); // CTC mode, prescaler /8
+    tccrxbValue = _BV(WGM12) | _BV(CS11); // CTC mode, prescaler /8
 #endif
     if (freq == 0) { // if tone is silent
       ocrValue = F_CPU / 8 / SILENT_FREQ / 2 - 1; // dummy tone for silence
@@ -247,15 +247,15 @@ void ArduboyTones::nextTone()
     toggleCount = -1; // indicate infinite duration
   }
 
-  TCCR3A = 0;
+  TCCR1A = 0;
 #ifdef TONES_ADJUST_PRESCALER
-  TCCR3B = tccrxbValue;
+  TCCR1B = tccrxbValue;
 #else
-  TCCR3B = _BV(WGM32) | _BV(CS31); // CTC mode, prescaler /8
+  TCCR1B = _BV(WGM12) | _BV(CS11); // CTC mode, prescaler /8
 #endif
-  OCR3A = ocrValue;
+  OCR1A = ocrValue;
   durationToggleCount = toggleCount;
-  bitWrite(TIMSK3, OCIE3A, 1); // enable the output compare match interrupt
+  bitWrite(TIMSK1, OCIE1A, 1); // enable the output compare match interrupt
 }
 
 uint16_t ArduboyTones::getNext()
@@ -266,11 +266,11 @@ uint16_t ArduboyTones::getNext()
   return *tonesIndex++;
 }
 
-ISR(TIMER3_COMPA_vect)
+ISR(TIMER1_COMPA_vect)
 {
   if (durationToggleCount != 0) {
     if (!toneSilent) {
-      *(&TONE_PIN_PORT) ^= TONE_PIN_MASK; // toggle the pin
+      TONE_PIN_PORT ^= TONE_PIN_MASK; // toggle the pin
 #ifdef TONES_VOLUME_CONTROL
       if (toneHighVol) {
         *(&TONE_PIN2_PORT) ^= TONE_PIN2_MASK; // toggle pin 2

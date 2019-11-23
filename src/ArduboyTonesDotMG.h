@@ -1,6 +1,6 @@
 /**
- * @file ArduboyTones.h
- * \brief An Arduino library for playing tones and tone sequences, 
+ * @file ArduboyTonesDotMG.h
+ * \brief An Arduino library for playing tones and tone sequences,
  * intended for the Arduboy game system.
  */
 
@@ -36,8 +36,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 *****************************************************************************/
 
-#ifndef ARDUBOY_TONES_H
-#define ARDUBOY_TONES_H
+#ifndef ARDUBOY_TONES_DOTMG_H
+#define ARDUBOY_TONES_DOTMG_H
 
 #include <Arduino.h>
 
@@ -81,31 +81,6 @@ THE SOFTWARE.
 
 // ************************************************************
 
-
-#ifndef AB_DEVKIT
-  // ***** SPEAKER ON TWO PINS *****
-  // Indicates that each of the speaker leads is attached to a pin, the way
-  // the Arduboy is wired. Allows tones of a higher volume to be produced.
-  // If commented out only one speaker pin will be used. The other speaker
-  // lead should be attached to ground.
-  #define TONES_2_SPEAKER_PINS
-  // *******************************
-
-  // ***** VOLUME HIGH/NORMAL SUPPORT *****
-  // With the speaker placed across two pins, higher volume is produced by
-  // toggling the second pin to the opposite state of the first pin.
-  // Normal volume is produced by leaving the second pin low.
-  // Comment this out for only normal volume support, which will slightly
-  // reduce the code size.
-  #define TONES_VOLUME_CONTROL
-  // **************************************
-
-  #ifdef TONES_VOLUME_CONTROL
-    // Must be defined for volume control, so force it if necessary.
-    #define TONES_2_SPEAKER_PINS
-  #endif
-#endif
-
 // ***** CONTROL THE TIMER CLOCK PRESCALER ****
 // Uncommenting this will switch the timer clock to use no prescaler,
 // instead of a divide by 8 prescaler, if the frequency is high enough to
@@ -119,24 +94,15 @@ THE SOFTWARE.
 // the tone() function.
 #define MAX_TONES 3
 
-#ifndef AB_DEVKIT
-  // Arduboy speaker pin 1 = Arduino pin 5 = ATmega32u4 PC6
-  #define TONE_PIN_PORT PORTC
-  #define TONE_PIN_DDR DDRC
-  #define TONE_PIN PORTC6
-  #define TONE_PIN_MASK _BV(TONE_PIN)
-  // Arduboy speaker pin 2 = Arduino pin 13 = ATmega32u4 PC7
-  #define TONE_PIN2_PORT PORTC
-  #define TONE_PIN2_DDR DDRC
-  #define TONE_PIN2 PORTC7
-  #define TONE_PIN2_MASK _BV(TONE_PIN2)
-#else
-  // DevKit speaker pin 1 = Arduino pin A2 = ATmega32u4 PF5
-  #define TONE_PIN_PORT PORTF
-  #define TONE_PIN_DDR DDRF
-  #define TONE_PIN PORTF5
-  #define TONE_PIN_MASK _BV(TONE_PIN)
-#endif
+#define PIN_SPEAKER    A2
+#define TONE_PIN_PORT  PORTC
+#define TONE_PIN_DDR   DDRC
+#define TONE_PIN       (PIN_SPEAKER - A0)
+#define TONE_PIN_MASK _BV(TONE_PIN)
+// #define TONE_PIN2_PORT digitalPinToPORT(PIN_SPK_B)
+// #define TONE_PIN2_DDR digitalPinToDDR(PIN_SPK_B)
+// #define TONE_PIN2 digitalPinToBit(PIN_SPK_B)
+// #define TONE_PIN2_MASK _BV(TONE_PIN2)
 
 // The minimum frequency that can be produced without a clock prescaler.
 #define MIN_NO_PRESCALE_FREQ ((uint16_t)(((F_CPU / 2L) + (1L << 16) - 1L) / (1L << 16)))
@@ -200,7 +166,7 @@ class ArduboyTones
    * \param tones A pointer to an array of frequency/duration pairs.
    * The array must be placed in code space using `PROGMEM`.
    *
-   * \details 
+   * \details
    * \parblock
    * See the `tone()` function for details on the frequency and duration values.
    * A frequency of 0 for any tone means silence (a musical rest).
@@ -228,7 +194,7 @@ class ArduboyTones
    *
    * \see tones()
    *
-   * \details 
+   * \details
    * \parblock
    * See the `tone()` function for details on the frequency and duration values.
    * A frequency of 0 for any tone means silence (a musical rest).

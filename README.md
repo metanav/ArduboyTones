@@ -39,7 +39,7 @@ A separate command line utility program, [midi2tones](https://github.com/MLXXXp/
 Include the library using
 
 ```cpp
-#include <ArduboyTones.h>
+#include <ArduboyTonesDotMG.h>
 ```
 
 You must then create an *ArduboyTones* object which specifies the callback function used for muting. The function is a required parameter. It must return a *boolean* (or *bool*) value which will be `true` if sound should be played, or `false` if all sounds should be muted. In this document the *ArduboyTones* object will be named *sound*. The *audio.enabled()* function of the *Arduboy* library will be used for the mute callback. The *Arduboy* object will be named *arduboy*.
@@ -47,8 +47,8 @@ You must then create an *ArduboyTones* object which specifies the callback funct
 So, to set things up we can use:
 
 ```cpp
-#include <Arduboy2.h>
-#include <ArduboyTones.h>
+#include <Arduboy2DotMG.h>
+#include <ArduboyTonesDotMG.h>
 
 Arduboy2 arduboy;
 ArduboyTones sound(arduboy.audio.enabled);
@@ -154,18 +154,6 @@ Stop playing the tone or sequence:
 `void noTone()`
 
 If called when nothing is playing, it will do nothing.
-
-----------
-
-Set the volume to always be normal, always high, or tone controlled:
-
-`void volumeMode(mode)`
-
-The following values for *mode* should be used:
-
-- *VOLUME_IN_TONE* - Each tone will play at the volume specified in the tone itself. This is the default.
-- *VOLUME_ALWAYS_NORMAL* - All tones will play at normal volume level regardless of what's specified in the tones.
-- *VOLUME_ALWAYS_HIGH* - All tones will play at high volume level regardless of what's specified in the tones.
 
 ----------
 

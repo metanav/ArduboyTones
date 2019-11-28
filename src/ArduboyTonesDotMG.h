@@ -1,40 +1,8 @@
 /**
  * @file ArduboyTonesDotMG.h
  * \brief An Arduino library for playing tones and tone sequences,
- * intended for the Arduboy game system.
+ * intended for the Modmatic dotMG game system.
  */
-
-/*****************************************************************************
-  ArduboyTones
-
-An Arduino library to play tones and tone sequences.
-
-Specifically written for use by the Arduboy miniature game system
-https://www.arduboy.com/
-but could work with other Arduino AVR boards that have 16 bit timer 3
-available, by changing the port and bit definintions for the pin(s)
-if necessary.
-
-Copyright (c) 2017 Scott Allen
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*****************************************************************************/
 
 #ifndef ARDUBOY_TONES_DOTMG_H
 #define ARDUBOY_TONES_DOTMG_H
@@ -228,17 +196,20 @@ class ArduboyTones
   static void noTone();
 
   /** \brief
-   * Set the volume to always normal, always high, or tone controlled.
+   * Originally intended to set the volume to always normal, always high, or tone controlled.
+   * For dotMG, this method has no effect as volume will always be normal.
    *
    * \param mode
    * \parblock
-   * One of the following values should be used:
+   * Originally, this would be one of the following values:
    *
    * - `VOLUME_IN_TONE` The volume of each tone will be specified in the tone
    *    itself.
    * - `VOLUME_ALWAYS_NORMAL` All tones will play at the normal volume level.
    * - `VOLUME_ALWAYS_HIGH` All tones will play at the high volume level.
    *
+   * However, as noted in the method description, volume will always be normal for dotMG,
+   * regardless of calls to this method.
    * \endparblock
    */
   static void volumeMode(uint8_t mode);

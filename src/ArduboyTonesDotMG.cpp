@@ -12,11 +12,9 @@ static bool (*outputEnabled)();
 static volatile long durationToggleCount = 0;
 static volatile bool tonesPlaying = false;
 static volatile bool toneSilent;
-#ifdef TONES_VOLUME_CONTROL
 static volatile bool toneHighVol;
 static volatile bool forceHighVol = false;
 static volatile bool forceNormVol = false;
-#endif
 
 static volatile uint16_t *tonesStart;
 static volatile uint16_t *tonesIndex;
@@ -30,17 +28,43 @@ ArduboyTones::ArduboyTones(boolean (*outEn)())
 
   toneSequence[MAX_TONES * 2] = TONES_END;
 
-  bitClear(TONE_PIN_PORT, TONE_PIN); // set the pin low
-  bitSet(TONE_PIN_DDR, TONE_PIN); // set the pin to output mode
-#ifdef TONES_2_SPEAKER_PINS
-  bitClear(TONE_PIN2_PORT, TONE_PIN2); // set pin 2 low
-  bitSet(TONE_PIN2_DDR, TONE_PIN2); // set pin 2 to output mode
-#endif
+  // Enable GCLK0 for timer
+  GCLK->CLKCTRL.reg =
+    GCLK_CLKCTRL_CLKEN |
+    GCLK_CLKCTRL_GEN_GCLK0 |
+    GCLK_CLKCTRL_ID(CLKCTRL_ID);
+  while (GCLK->STATUS.bit.SYNCBUSY);
+
+  // Reset timer
+  TIMER_CTRL->COUNT16.CTRLA.reg = TC_CTRLA_SWRST;
+  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+  while (TIMER_CTRL->COUNT16.CTRLA.bit.SWRST);
+
+  // Set to 16-bit counter, match frequency mode, clk/16 prescaler
+  TIMER_CTRL->COUNT16.CTRLA.reg = (
+    TC_CTRLA_MODE_COUNT16 |
+    TC_CTRLA_WAVEGEN_MFRQ |
+    TC_CTRLA_PRESCALER_DIV16
+  );
+  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+
+  // Configure interrupt request
+  NVIC_DisableIRQ(TIMER_IRQ);
+  NVIC_ClearPendingIRQ(TIMER_IRQ);
+  NVIC_SetPriority(TIMER_IRQ, 0);
+  NVIC_EnableIRQ(TIMER_IRQ);
+
+  // Enable interrupt request
+  TIMER_CTRL->COUNT16.INTENSET.bit.MC0 = 1;
+  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
 }
 
 void ArduboyTones::tone(uint16_t freq, uint16_t dur)
 {
-  bitClear(TIMSK1, OCIE1A); // disable the output compare match interrupt
+  // Disable counter
+  TIMER_CTRL->COUNT16.CTRLA.bit.ENABLE = 0;
+  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+
   inProgmem = false;
   tonesStart = tonesIndex = toneSequence; // set to start of sequence array
   toneSequence[0] = freq;
@@ -52,7 +76,10 @@ void ArduboyTones::tone(uint16_t freq, uint16_t dur)
 void ArduboyTones::tone(uint16_t freq1, uint16_t dur1,
                         uint16_t freq2, uint16_t dur2)
 {
-  bitClear(TIMSK1, OCIE1A); // disable the output compare match interrupt
+  // Disable counter
+  TIMER_CTRL->COUNT16.CTRLA.bit.ENABLE = 0;
+  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+
   inProgmem = false;
   tonesStart = tonesIndex = toneSequence; // set to start of sequence array
   toneSequence[0] = freq1;
@@ -67,7 +94,10 @@ void ArduboyTones::tone(uint16_t freq1, uint16_t dur1,
                         uint16_t freq2, uint16_t dur2,
                         uint16_t freq3, uint16_t dur3)
 {
-  bitClear(TIMSK1, OCIE1A); // disable the output compare match interrupt
+  // Disable counter
+  TIMER_CTRL->COUNT16.CTRLA.bit.ENABLE = 0;
+  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+
   inProgmem = false;
   tonesStart = tonesIndex = toneSequence; // set to start of sequence array
   toneSequence[0] = freq1;
@@ -82,7 +112,10 @@ void ArduboyTones::tone(uint16_t freq1, uint16_t dur1,
 
 void ArduboyTones::tones(const uint16_t *tones)
 {
-  bitClear(TIMSK1, OCIE1A); // disable the output compare match interrupt
+  // Disable counter
+  TIMER_CTRL->COUNT16.CTRLA.bit.ENABLE = 0;
+  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+
   inProgmem = true;
   tonesStart = tonesIndex = (uint16_t *)tones; // set to start of sequence array
   nextTone(); // start playing
@@ -90,7 +123,10 @@ void ArduboyTones::tones(const uint16_t *tones)
 
 void ArduboyTones::tonesInRAM(uint16_t *tones)
 {
-  bitClear(TIMSK1, OCIE1A); // disable the output compare match interrupt
+  // Disable counter
+  TIMER_CTRL->COUNT16.CTRLA.bit.ENABLE = 0;
+  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+
   inProgmem = false;
   tonesStart = tonesIndex = tones; // set to start of sequence array
   nextTone(); // start playing
@@ -98,18 +134,15 @@ void ArduboyTones::tonesInRAM(uint16_t *tones)
 
 void ArduboyTones::noTone()
 {
-  bitClear(TIMSK1, OCIE1A); // disable the output compare match interrupt
-  TCCR1B = 0; // stop the counter
-  bitClear(TONE_PIN_PORT, TONE_PIN); // set the pin low
-#ifdef TONES_VOLUME_CONTROL
-  bitClear(TONE_PIN2_PORT, TONE_PIN2); // set pin 2 low
-#endif
+  // Disable counter
+  TIMER_CTRL->COUNT16.CTRLA.bit.ENABLE = 0;
+  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+
   tonesPlaying = false;
 }
 
 void ArduboyTones::volumeMode(uint8_t mode)
 {
-#ifdef TONES_VOLUME_CONTROL
   forceNormVol = false; // assume volume is tone controlled
   forceHighVol = false;
 
@@ -119,7 +152,6 @@ void ArduboyTones::volumeMode(uint8_t mode)
   else if (mode == VOLUME_ALWAYS_HIGH) {
     forceHighVol = true;
   }
-#endif
 }
 
 bool ArduboyTones::playing()
@@ -132,10 +164,7 @@ void ArduboyTones::nextTone()
   uint16_t freq;
   uint16_t dur;
   long toggleCount;
-  uint32_t ocrValue;
-#ifdef TONES_ADJUST_PRESCALER
-  uint8_t tccrxbValue;
-#endif
+  uint32_t timerCount;
 
   freq = getNext(); // get tone frequency
 
@@ -151,58 +180,29 @@ void ArduboyTones::nextTone()
     freq = getNext();
   }
 
-#ifdef TONES_VOLUME_CONTROL
   if (((freq & TONE_HIGH_VOLUME) || forceHighVol) && !forceNormVol) {
     toneHighVol = true;
   }
   else {
     toneHighVol = false;
   }
-#endif
 
   freq &= ~TONE_HIGH_VOLUME; // strip volume indicator from frequency
 
-#ifdef TONES_ADJUST_PRESCALER
-  if (freq >= MIN_NO_PRESCALE_FREQ) {
-    tccrxbValue = _BV(WGM12) | _BV(CS10); // CTC mode, no prescaling
-    ocrValue = F_CPU / freq / 2 - 1;
-    toneSilent = false;
+  if (freq == 0) { // if tone is silent
+    timerCount = F_CPU / 16 / SILENT_FREQ / 2 - 1; // dummy tone for silence
+    freq = SILENT_FREQ;
+    toneSilent = true;
+    // bitClear(TONE_PIN_PORT, TONE_PIN); // set the pin low
   }
   else {
-    tccrxbValue = _BV(WGM12) | _BV(CS11); // CTC mode, prescaler /8
-#endif
-    if (freq == 0) { // if tone is silent
-      ocrValue = F_CPU / 8 / SILENT_FREQ / 2 - 1; // dummy tone for silence
-      freq = SILENT_FREQ;
-      toneSilent = true;
-      bitClear(TONE_PIN_PORT, TONE_PIN); // set the pin low
-    }
-    else {
-      ocrValue = F_CPU / 8 / freq / 2 - 1;
-      toneSilent = false;
-    }
-#ifdef TONES_ADJUST_PRESCALER
+    timerCount = F_CPU / 16 / freq / 2 - 1;
+    toneSilent = false;
   }
-#endif
 
   if (!outputEnabled()) { // if sound has been muted
     toneSilent = true;
   }
-
-#ifdef TONES_VOLUME_CONTROL
-  if (toneHighVol && !toneSilent) {
-    // set pin 2 to the compliment of pin 1
-    if (bitRead(TONE_PIN_PORT, TONE_PIN)) {
-      bitClear(TONE_PIN2_PORT, TONE_PIN2);
-    }
-    else {
-      bitSet(TONE_PIN2_PORT, TONE_PIN2);
-    }
-  }
-  else {
-    bitClear(TONE_PIN2_PORT, TONE_PIN2); // set pin 2 low for normal volume
-  }
-#endif
 
   dur = getNext(); // get tone duration
   if (dur != 0) {
@@ -215,15 +215,14 @@ void ArduboyTones::nextTone()
     toggleCount = -1; // indicate infinite duration
   }
 
-  TCCR1A = 0;
-#ifdef TONES_ADJUST_PRESCALER
-  TCCR1B = tccrxbValue;
-#else
-  TCCR1B = _BV(WGM12) | _BV(CS11); // CTC mode, prescaler /8
-#endif
-  OCR1A = ocrValue;
   durationToggleCount = toggleCount;
-  bitWrite(TIMSK1, OCIE1A, 1); // enable the output compare match interrupt
+
+  // Set counter based on desired frequency
+  TIMER_CTRL->COUNT16.CC[0].reg = timerCount;
+
+  // Enable counter
+  TIMER_CTRL->COUNT16.CTRLA.bit.ENABLE = 1;
+  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
 }
 
 uint16_t ArduboyTones::getNext()
@@ -234,17 +233,13 @@ uint16_t ArduboyTones::getNext()
   return *tonesIndex++;
 }
 
-ISR(TIMER1_COMPA_vect)
+TIMER_HANDLER
 {
   if (durationToggleCount != 0) {
     if (!toneSilent) {
-      TONE_PIN_PORT ^= TONE_PIN_MASK; // toggle the pin
-#ifdef TONES_VOLUME_CONTROL
-      if (toneHighVol) {
-        *(&TONE_PIN2_PORT) ^= TONE_PIN2_MASK; // toggle pin 2
-      }
-#endif
+      DAC->DATA.reg = DAC->DATA.reg ? 0 : (toneHighVol ? 1023 : 511);
     }
+
     if (durationToggleCount > 0) {
       durationToggleCount--;
     }
@@ -252,4 +247,7 @@ ISR(TIMER1_COMPA_vect)
   else {
     ArduboyTones::nextTone();
   }
+
+  // Clear the interrupt
+  TIMER_CTRL->COUNT16.INTFLAG.bit.MC0 = 1;
 }

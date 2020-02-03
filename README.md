@@ -169,9 +169,9 @@ Returns `true` if playing (even if sound is muted).
 
 #### Example sketch
 
-The ArduboyTones library contains an example sketch *ArduboyTonesTest* in the *examples* folder. It was primarily written to test the library but the code can be examined and uploaded for examples of using all the functions. It uses the [*Arduboy2*](https://github.com/MLXXXp/Arduboy2) library, which must be installed to compile the sketch. *ArduboyTonesTest* can be loaded into the Arduino IDE using the menus:
+The ArduboyTonesDotMG library contains an example sketch *ArduboyTonesTest* in the *examples* folder. It was primarily written to test the library but the code can be examined and uploaded for examples of using all the functions. It uses the [*Arduboy2DotMG*](https://github.com/modmatic/Arduboy2DotMG) library, which must be installed to compile the sketch. *ArduboyTonesTest* can be loaded into the Arduino IDE using the menus:
 
-`File > Examples > ArduboyTones > ArduboyTonesTest`
+`File > Examples > ArduboyTonesDotMG > ArduboyTonesTest`
 
 #### Frequencies and durations work the same everywhere
 
@@ -189,6 +189,6 @@ Using a two or three tone array in program memory with *tones()* is likely more 
 
 Ideally, to match Arduino *tone()*, durations should be given in 1000ths of a second (milliseconds). However, ArduboyTones treats durations as being in 1024ths of a second. Here's why:
 
-To calculate internal timing values for a duration given in milliseconds, a divide by 500 on an *unsigned long* (32 bit) number is required, which is what Arduino *tone()* does. On an 8 bit processor without any native divide instructions, this is slow and takes a fair amount of code. On the other hand, a divide by 512 is easily and quickly accomplished by simply shifting the value right 9 bits. This is what ArduboyTones does, at the expense of durations being about 2.34% shorter than the same value would be with Arduino *tone()*.
+To calculate internal timing values for a duration given in milliseconds, a divide by 500 on an *unsigned long* (32 bit) number is required, which is what Arduino *tone()* does. On an 8 bit processor without any native divide instructions (which is what the original Arduboy uses), this is slow and takes a fair amount of code. On the other hand, a divide by 512 is easily and quickly accomplished by simply shifting the value right 9 bits. This is what ArduboyTones does, at the expense of durations being about 2.34% shorter than the same value would be with Arduino *tone()*.
 
 In most circumstances, the slightly shorter durations will likely be unnoticeable. If a duration needs to be precise, the required value can be calculated by multiplying the desired duration, in milliseconds, by 1.024.

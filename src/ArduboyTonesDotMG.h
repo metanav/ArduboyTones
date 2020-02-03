@@ -47,36 +47,24 @@
  */
 #define VOLUME_ALWAYS_HIGH 2
 
-// ************************************************************
-
-// ***** CONTROL THE TIMER CLOCK PRESCALER ****
-// Uncommenting this will switch the timer clock to use no prescaler,
-// instead of a divide by 8 prescaler, if the frequency is high enough to
-// allow it. This will result in higher frequencies being more accurate at
-// the expense of requiring more code. If left commented out, a divide by 8
-// prescaler will be used for all frequencies.
-//#define TONES_ADJUST_PRESCALER
-// ********************************************
-
 // This must match the maximum number of tones that can be specified in
 // the tone() function.
 #define MAX_TONES 3
 
-#define PIN_SPEAKER    A2
-#define TONE_PIN_PORT  PORTC
-#define TONE_PIN_DDR   DDRC
-#define TONE_PIN       (PIN_SPEAKER - A0)
-#define TONE_PIN_MASK _BV(TONE_PIN)
-// #define TONE_PIN2_PORT digitalPinToPORT(PIN_SPK_B)
-// #define TONE_PIN2_DDR digitalPinToDDR(PIN_SPK_B)
-// #define TONE_PIN2 digitalPinToBit(PIN_SPK_B)
-// #define TONE_PIN2_MASK _BV(TONE_PIN2)
+#define PIN_SPEAKER PIN_DAC0
+
+// Change these if there's a conflict with timers between this library
+// and others
+#define TIMER_CTRL    TC3
+#define CLKCTRL_ID    GCM_TCC2_TC3
+#define TIMER_IRQ     TC3_IRQn
+#define TIMER_HANDLER void TC3_Handler()
 
 // The minimum frequency that can be produced without a clock prescaler.
 #define MIN_NO_PRESCALE_FREQ ((uint16_t)(((F_CPU / 2L) + (1L << 16) - 1L) / (1L << 16)))
 
 // Dummy frequency used to for silent tones (rests).
-#define SILENT_FREQ 250
+#define SILENT_FREQ 25
 
 
 /** \brief

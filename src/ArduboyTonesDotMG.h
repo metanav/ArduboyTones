@@ -60,9 +60,6 @@
 #define TIMER_IRQ     TC3_IRQn
 #define TIMER_HANDLER void TC3_Handler()
 
-// The minimum frequency that can be produced without a clock prescaler.
-#define MIN_NO_PRESCALE_FREQ ((uint16_t)(((F_CPU / 2L) + (1L << 16) - 1L) / (1L << 16)))
-
 // Dummy frequency used to for silent tones (rests).
 #define SILENT_FREQ 25
 

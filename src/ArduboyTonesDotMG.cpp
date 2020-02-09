@@ -193,7 +193,6 @@ void ArduboyTones::nextTone()
     timerCount = F_CPU / 16 / SILENT_FREQ / 2 - 1; // dummy tone for silence
     freq = SILENT_FREQ;
     toneSilent = true;
-    // bitClear(TONE_PIN_PORT, TONE_PIN); // set the pin low
   }
   else {
     timerCount = F_CPU / 16 / freq / 2 - 1;

@@ -21,6 +21,11 @@ static volatile uint16_t *tonesIndex;
 static volatile uint16_t toneSequence[MAX_TONES * 2 + 1];
 static volatile bool inProgmem;
 
+void enable_counter(boolean enable)
+{
+  TIMER_CTRL->COUNT16.CTRLA.bit.ENABLE = enable;
+  while (TIMER_CTRL->COUNT16.SYNCBUSY.bit.ENABLE);
+}
 
 ArduboyTones::ArduboyTones(boolean (*outEn)())
 {
@@ -28,25 +33,26 @@ ArduboyTones::ArduboyTones(boolean (*outEn)())
 
   toneSequence[MAX_TONES * 2] = TONES_END;
 
-  // Enable GCLK0 for timer
-  GCLK->CLKCTRL.reg =
-    GCLK_CLKCTRL_CLKEN |
-    GCLK_CLKCTRL_GEN_GCLK0 |
-    GCLK_CLKCTRL_ID(CLKCTRL_ID);
-  while (GCLK->STATUS.bit.SYNCBUSY);
+  // Enable GCLK for timer
+  GCLK->PCHCTRL[TIMER_GCLK_ID].reg = GCLK_PCHCTRL_GEN_GCLK0_Val | (1 << GCLK_PCHCTRL_CHEN_Pos);
 
-  // Reset timer
+  // Disable counter
+  enable_counter(false);
+
+  // Reset counter
   TIMER_CTRL->COUNT16.CTRLA.reg = TC_CTRLA_SWRST;
-  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+  while (TIMER_CTRL->COUNT16.SYNCBUSY.bit.ENABLE);
   while (TIMER_CTRL->COUNT16.CTRLA.bit.SWRST);
 
-  // Set to 16-bit counter, match frequency mode, clk/16 prescaler
+  // Set to match frequency mode
+  TIMER_CTRL->COUNT16.WAVE.reg = TC_WAVE_WAVEGEN_MFRQ;
+
+  // Set to 16-bit counter, clk/16 prescaler
   TIMER_CTRL->COUNT16.CTRLA.reg = (
     TC_CTRLA_MODE_COUNT16 |
-    TC_CTRLA_WAVEGEN_MFRQ |
     TC_CTRLA_PRESCALER_DIV16
   );
-  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+  while (TIMER_CTRL->COUNT16.SYNCBUSY.bit.ENABLE);
 
   // Configure interrupt request
   NVIC_DisableIRQ(TIMER_IRQ);
@@ -56,14 +62,12 @@ ArduboyTones::ArduboyTones(boolean (*outEn)())
 
   // Enable interrupt request
   TIMER_CTRL->COUNT16.INTENSET.bit.MC0 = 1;
-  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+  while (TIMER_CTRL->COUNT16.SYNCBUSY.bit.ENABLE);
 }
 
 void ArduboyTones::tone(uint16_t freq, uint16_t dur)
 {
-  // Disable counter
-  TIMER_CTRL->COUNT16.CTRLA.bit.ENABLE = 0;
-  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+  enable_counter(false);
 
   inProgmem = false;
   tonesStart = tonesIndex = toneSequence; // set to start of sequence array
@@ -76,9 +80,7 @@ void ArduboyTones::tone(uint16_t freq, uint16_t dur)
 void ArduboyTones::tone(uint16_t freq1, uint16_t dur1,
                         uint16_t freq2, uint16_t dur2)
 {
-  // Disable counter
-  TIMER_CTRL->COUNT16.CTRLA.bit.ENABLE = 0;
-  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+  enable_counter(false);
 
   inProgmem = false;
   tonesStart = tonesIndex = toneSequence; // set to start of sequence array
@@ -94,9 +96,7 @@ void ArduboyTones::tone(uint16_t freq1, uint16_t dur1,
                         uint16_t freq2, uint16_t dur2,
                         uint16_t freq3, uint16_t dur3)
 {
-  // Disable counter
-  TIMER_CTRL->COUNT16.CTRLA.bit.ENABLE = 0;
-  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+  enable_counter(false);
 
   inProgmem = false;
   tonesStart = tonesIndex = toneSequence; // set to start of sequence array
@@ -112,9 +112,7 @@ void ArduboyTones::tone(uint16_t freq1, uint16_t dur1,
 
 void ArduboyTones::tones(const uint16_t *tones)
 {
-  // Disable counter
-  TIMER_CTRL->COUNT16.CTRLA.bit.ENABLE = 0;
-  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+  enable_counter(false);
 
   inProgmem = true;
   tonesStart = tonesIndex = (uint16_t *)tones; // set to start of sequence array
@@ -123,9 +121,7 @@ void ArduboyTones::tones(const uint16_t *tones)
 
 void ArduboyTones::tonesInRAM(uint16_t *tones)
 {
-  // Disable counter
-  TIMER_CTRL->COUNT16.CTRLA.bit.ENABLE = 0;
-  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+  enable_counter(false);
 
   inProgmem = false;
   tonesStart = tonesIndex = tones; // set to start of sequence array
@@ -134,10 +130,7 @@ void ArduboyTones::tonesInRAM(uint16_t *tones)
 
 void ArduboyTones::noTone()
 {
-  // Disable counter
-  TIMER_CTRL->COUNT16.CTRLA.bit.ENABLE = 0;
-  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
-
+  enable_counter(false);
   tonesPlaying = false;
 }
 
@@ -218,10 +211,7 @@ void ArduboyTones::nextTone()
 
   // Set counter based on desired frequency
   TIMER_CTRL->COUNT16.CC[0].reg = timerCount;
-
-  // Enable counter
-  TIMER_CTRL->COUNT16.CTRLA.bit.ENABLE = 1;
-  while (TIMER_CTRL->COUNT16.STATUS.bit.SYNCBUSY);
+  enable_counter(true);
 }
 
 uint16_t ArduboyTones::getNext()
@@ -232,11 +222,18 @@ uint16_t ArduboyTones::getNext()
   return *tonesIndex++;
 }
 
+volatile bool val;
 TIMER_HANDLER
 {
   if (durationToggleCount != 0) {
     if (!toneSilent) {
-      DAC->DATA.reg = DAC->DATA.reg ? 0 : (toneHighVol ? 1023 : 511);
+      if (!DAC->DACCTRL[DAC_CH_SPEAKER].bit.ENABLE)
+        return;
+
+      while (!DAC_READY);
+      while (DAC_DATA_BUSY);
+      val = !val;
+      DAC->DATA[DAC_CH_SPEAKER].reg = val ? 0 : (toneHighVol ? 2047 : 1023);
     }
 
     if (durationToggleCount > 0) {

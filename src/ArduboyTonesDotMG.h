@@ -51,12 +51,15 @@
 // the tone() function.
 #define MAX_TONES 3
 
-#define PIN_SPEAKER PIN_DAC0
+#define PIN_SPEAKER    PIN_DAC1
+#define DAC_CH_SPEAKER 1
+#define DAC_READY      DAC->STATUS.bit.READY1
+#define DAC_DATA_BUSY  DAC->SYNCBUSY.bit.DATA1
 
 // Change these if there's a conflict with timers between this library
 // and others
 #define TIMER_CTRL    TC3
-#define CLKCTRL_ID    GCM_TCC2_TC3
+#define TIMER_GCLK_ID TC3_GCLK_ID
 #define TIMER_IRQ     TC3_IRQn
 #define TIMER_HANDLER void TC3_Handler()
 

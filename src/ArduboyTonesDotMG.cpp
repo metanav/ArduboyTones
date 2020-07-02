@@ -233,7 +233,7 @@ TIMER_HANDLER
       while (!DAC_READY);
       while (DAC_DATA_BUSY);
       val = !val;
-      DAC->DATA[DAC_CH_SPEAKER].reg = val ? 0 : (toneHighVol ? 2047 : 1023);
+      DAC->DATA[DAC_CH_SPEAKER].reg = val ? 0 : (toneHighVol ? 4095 : 3072);
     }
 
     if (durationToggleCount > 0) {

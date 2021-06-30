@@ -1,11 +1,11 @@
 /**
- * @file ArduboyTonesDotMG.h
+ * @file ArduboyTones.h
  * \brief An Arduino library for playing tones and tone sequences,
  * intended for the Modmatic dotMG game system.
  */
 
-#ifndef ARDUBOY_TONES_DOTMG_H
-#define ARDUBOY_TONES_DOTMG_H
+#ifndef ARDUBOY_TONES_H
+#define ARDUBOY_TONES_H
 
 #include <Arduino.h>
 

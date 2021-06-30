@@ -1,10 +1,10 @@
 /**
- * @file ArduboyTonesDotMG.cpp
+ * @file ArduboyTones.cpp
  * \brief An Arduino library for playing tones and tone sequences,
  * intended for the Modmatic dotMG game system.
  */
 
-#include "ArduboyTonesDotMG.h"
+#include "ArduboyTones.h"
 
 // pointer to a function that indicates if sound is enabled
 static bool (*outputEnabled)();
